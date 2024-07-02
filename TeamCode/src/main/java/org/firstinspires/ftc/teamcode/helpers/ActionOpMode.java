@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.helpers;
 
+import androidx.annotation.NonNull;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
@@ -61,5 +63,39 @@ public abstract class ActionOpMode extends LinearOpMode {
         }
     }
 
+    protected void runNoQueue(Action a) {
+        if (!(a instanceof UniqueAction &&
+                runningActions.stream().anyMatch(
+                        (b) -> b instanceof UniqueAction &&
+                                Objects.equals(((UniqueAction) b).key, ((UniqueAction) a).key)))) {
 
+            runningActions.add(a);
+
+        }
+
+
+    }
+
+
+    public static class UniqueAction implements Action {
+        public String key = "UniqueAction";
+        private final Action action;
+        public UniqueAction(String key, Action action) {
+            this.key = key;
+            this.action = action;
+        }
+        public UniqueAction(Action action) {
+            this.action = action;
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket t) {
+            return action.run(t);
+        }
+
+        @Override
+        public void preview(@NonNull Canvas fieldOverlay) {
+            action.preview(fieldOverlay);
+        }
+    }
 }

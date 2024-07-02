@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
@@ -40,12 +41,12 @@ public class TeleopActions extends ActionOpMode {
 
 
     // Declare a PIDF Controller to regulate heading
-    private final PIDFController.PIDCoefficients HEADING_PID_JOYSTICK = new PIDFController.PIDCoefficients(0.2, 0.0, 1);
+    private final PIDFController.PIDCoefficients HEADING_PID_JOYSTICK = new PIDFController.PIDCoefficients(0.3, 0.0, 1);
     private final PIDFController joystickHeadingController = new PIDFController(HEADING_PID_JOYSTICK);
     private final PIDFController.PIDCoefficients PIXEL_PID_JOYSTICK = new PIDFController.PIDCoefficients(0.004, 0.0, 0.0);
     private final PIDFController pixelHeadingController = new PIDFController(PIXEL_PID_JOYSTICK);
     double speed;
-    Rotation2d targetHeading;
+    Rotation2d targetHeading = PoseStorage.currentPose.heading;
     LynxModule CONTROL_HUB;
     LynxModule EXPANSION_HUB;
     boolean fieldCentric = true;
@@ -78,13 +79,8 @@ public class TeleopActions extends ActionOpMode {
 
     @Override
     public void runOpMode() {
-        //PhotonCore.enable();
 
         //  Initialization Period
-
-        // Enable Performance Optimization
-
-        //PhotonCore.start(hardwareMap); // TODO: if somethings' wrong THIS IS WHY
 
         // Enable Bulk Caching
         List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
@@ -96,13 +92,16 @@ public class TeleopActions extends ActionOpMode {
         EXPANSION_HUB = allHubs.get(1);
 
         // RoadRunner Init
-        drive = new MecanumDrive(hardwareMap, PoseStorage.currentPose);
+        drive = new SparkFunOTOSDrive(hardwareMap, PoseStorage.currentPose);
+
+
         joystickHeadingController.setInputBounds(-Math.PI, Math.PI);
 
         // Telemetry Init
         telemetry.setMsTransmissionInterval(50);
-        //telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
+        /*
         // Motor Init
         motorControl = new MotorControl(hardwareMap);
         motorActions = new MotorActions(motorControl);
@@ -110,14 +109,7 @@ public class TeleopActions extends ActionOpMode {
         motorControl.slide.findZero();
         motorControl.activatePreset(MotorControl.combinedPreset.IDLE);
 
-
-        // Vision Init
-        new VisionPortal.Builder()
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 2"))
-                .addProcessors(whitePixelProcessor, cameraStreamProcessor)
-                .build();
-
-        FtcDashboard.getInstance().startCameraStream(cameraStreamProcessor, 30);
+         */
 
 
         waitForStart();
@@ -254,17 +246,10 @@ public class TeleopActions extends ActionOpMode {
                     rotationAmount = rotationAmount + Math.toRadians(90);
 
                 }
-                input = drive.pose.heading.inverse().times(new Vector2d(input.x, input.y)); // magic courtesy of https://github.com/acmerobotics/road-runner/issues/90#issuecomment-1722674965
+                input = Rotation2d.fromDouble(rotationAmount).times(new Vector2d(input.x, input.y)); // magic courtesy of https://github.com/acmerobotics/road-runner/issues/90#issuecomment-1722674965
             }
             Vector2d controllerHeading = new Vector2d(-gamepad1.right_stick_y, -gamepad1.right_stick_x);
 
-            // gunner can take control temporarily if needed
-            if (padFullCycle) {
-                input = input.plus(new Vector2d(
-                        0,
-                        -padGunnerDrive * 0.5
-                ));
-            }
             if (drivingEnabled) {
                 if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1) { //TODO: trigggers still turn, but PID hold heading unless turning
                     drive.setDrivePowers(
@@ -277,9 +262,9 @@ public class TeleopActions extends ActionOpMode {
                             )
                     );
                     targetHeading = drive.pose.heading;
-                } else { // right stick is pushed
+                } else {
                     // Set the target heading for the heading controller to our desired angle
-                    if (Math.sqrt(Math.pow(controllerHeading.x, 2.0) + Math.pow(controllerHeading.y, 2.0)) < 0.4) {
+                    if (Math.sqrt(Math.pow(controllerHeading.x, 2.0) + Math.pow(controllerHeading.y, 2.0)) > 0.4) {
                         // Cast the angle based on the angleCast of the joystick as a heading
                         if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) {
                             targetHeading = controllerHeading.angleCast().plus(Math.toRadians(-90));
@@ -312,6 +297,7 @@ public class TeleopActions extends ActionOpMode {
 
             // LIFT CONTROL/FSM
 
+            /*
 
             // Slide (Manual)
             if (motorControl.slide.getTargetPosition() > 1100 && padSlideControl > 0) {
@@ -335,14 +321,14 @@ public class TeleopActions extends ActionOpMode {
                 run(placePixel(this::padRelease)); // TODO: maybe causes issues?
             }
 
-            /*
+
             if (pixelInClaw && runningActions.isEmpty()) {
                 motorControl.claw.setPosition(0.82); //0.85
             } else {
                 motorControl.claw.setPosition(0.94);
             }
 
-             */
+
 
             if (padClawToggle) {
                 pixelInClaw = !pixelInClaw;
@@ -356,6 +342,8 @@ public class TeleopActions extends ActionOpMode {
                 pixelInHook = false;
                 motorControl.seperator.setPosition(0);
             }
+
+
 
 
             // Reset
@@ -393,32 +381,17 @@ public class TeleopActions extends ActionOpMode {
                 motorControl.seperator.setPosition(0);
             }
 
-             */
+
 
              if (currentGamepad2.triangle && !previousGamepad2.triangle) {
                     motorControl.hookArm.setPosition(0.6);
                     motorControl.slide.setTargetPosition(1200);
              }
 
-
-            //gamepad1.rumble(CONTROL_HUB.getCurrent(CurrentUnit.AMPS),EXPANSION_HUB.getCurrent(CurrentUnit.AMPS),Gamepad.RUMBLE_DURATION_CONTINUOUS);
-            if (motorControl.isOverCurrent()) {
-                gamepad1.rumble(0.5, 0.5, Gamepad.RUMBLE_DURATION_CONTINUOUS);
-                gamepad2.rumble(0.5, 0.5, Gamepad.RUMBLE_DURATION_CONTINUOUS);
-            }
-
-            //autoPlacer
-            //motorControl.autoPlacer.setPosition(motorControl.autoPlacer.getPosition() + gamepad2.right_stick_x / 3);
-
-            double colorAlpha = motorControl.color.alpha();
-            double pad2rumble;
-
-            /*
-            if (colorAlpha > 10000 && (motorControl.clawArm.getTargetPosition() == 0) && motorControl.clawArm.closeEnough() && !gamepad2.left_bumper && !gamepad1.square) {
-                pixelInClaw = true;
-            }
-
              */
+
+            double colorAlpha = 0;
+            double pad2rumble;
 
             // rumble the gunner controller based on the claw color sensor
             if (colorAlpha > 200 && !pixelInClaw) {
@@ -438,19 +411,10 @@ public class TeleopActions extends ActionOpMode {
 
             updateAsync(packet);
             drive.updatePoseEstimate();
-            motorControl.update();
+            //motorControl.update();
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
 
             double loopTimeMs = loopTime.milliseconds();
-
-            if (motorControl.isOverCurrent()) {
-                telemetry.addLine("!!! OVER CURRENT !!!");
-                telemetry.addData("CONTROL HUB CURRENT (A)", CONTROL_HUB.getCurrent(CurrentUnit.AMPS));
-                telemetry.addData("EXPANSION HUB CURRENT (A)", EXPANSION_HUB.getCurrent(CurrentUnit.AMPS));
-                telemetry.addData("ARM CURRENT", motorControl.clawArm.motor.getCurrent(CurrentUnit.AMPS));
-                telemetry.addData("SLIDE CURRENT", motorControl.slide.motor.getCurrent(CurrentUnit.AMPS));
-            }
-
             if (showPoseTelemetry) {
                 telemetry.addLine("--- Pose ---");
                 telemetry.addData("x", drive.pose.position.x);
@@ -462,6 +426,7 @@ public class TeleopActions extends ActionOpMode {
                 telemetry.addData("loopTimeMs", loopTimeMs);
                 telemetry.addData("loopTimeHz", 1000.0 / loopTimeMs);
             }
+            /*
             if (showMotorTelemetry) {
                 telemetry.addLine("--- Motors ---");
                 telemetry.addData("armTarget", motorControl.clawArm.getTargetPosition());
@@ -475,6 +440,8 @@ public class TeleopActions extends ActionOpMode {
                 telemetry.addData("touchSensor", motorControl.touch.isPressed());
                 telemetry.addData("touchSensor", motorControl.magnet.isPressed());
             }
+
+
             if (showStateTelemetry) {
                 telemetry.addLine("--- State Machine ---");
                 telemetry.addData("pixelInClaw", pixelInClaw);
@@ -486,14 +453,8 @@ public class TeleopActions extends ActionOpMode {
                 telemetry.addData("suspendMode",suspendSet);
                 telemetry.addData("actionRunning", actionRunning);
             }
-            if (showCameraTelemetry) {
-                telemetry.addLine("--- Camera ---");
-                if (whitePixelProcessor.getDetectedPixel() != null) {
-                    telemetry.addData("pixelX", whitePixelProcessor.getDetectedPixel().x);
-                    telemetry.addData("pixelY", whitePixelProcessor.getDetectedPixel().y);
-                    telemetry.addData("pixelWidth", whitePixelProcessor.getDetectedPixel().width);
-                }
-            }
+
+             */
             telemetry.update();
         }
     }

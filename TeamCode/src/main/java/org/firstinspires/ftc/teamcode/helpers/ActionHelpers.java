@@ -33,7 +33,7 @@ public class ActionHelpers {
     public static class TimeoutAction implements Action {
         private final Action action;
         private final double timeout;
-        private double startTime;
+        private double startTime = Actions.now();
 
         public TimeoutAction(@NonNull Action action, long timeout) {
             this.action = action;
