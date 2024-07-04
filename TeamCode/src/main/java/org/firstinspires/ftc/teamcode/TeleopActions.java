@@ -21,8 +21,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode;
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage;
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController;
@@ -30,7 +28,6 @@ import org.firstinspires.ftc.teamcode.helpers.vision.CameraStreamProcessor;
 import org.firstinspires.ftc.teamcode.motor.MotorActions;
 import org.firstinspires.ftc.teamcode.motor.MotorControl;
 import org.firstinspires.ftc.teamcode.vision.pipelines.WhitePixelProcessor;
-import org.firstinspires.ftc.vision.VisionPortal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,8 +40,6 @@ public class TeleopActions extends ActionOpMode {
     // Declare a PIDF Controller to regulate heading
     private final PIDFController.PIDCoefficients HEADING_PID_JOYSTICK = new PIDFController.PIDCoefficients(0.3, 0.0, 1);
     private final PIDFController joystickHeadingController = new PIDFController(HEADING_PID_JOYSTICK);
-    private final PIDFController.PIDCoefficients PIXEL_PID_JOYSTICK = new PIDFController.PIDCoefficients(0.004, 0.0, 0.0);
-    private final PIDFController pixelHeadingController = new PIDFController(PIXEL_PID_JOYSTICK);
     double speed;
     Rotation2d targetHeading = PoseStorage.currentPose.heading;
     LynxModule CONTROL_HUB;
@@ -53,7 +48,6 @@ public class TeleopActions extends ActionOpMode {
     public MecanumDrive drive;
 
     List<Action> runningActions = new ArrayList<>();
-    final ElapsedTime liftTimer = new ElapsedTime();
     final ElapsedTime loopTime = new ElapsedTime();
     boolean pixelInClaw = false;
     boolean pixelInHook = true;//false;
@@ -61,9 +55,6 @@ public class TeleopActions extends ActionOpMode {
     final Gamepad currentGamepad2 = new Gamepad();
     final Gamepad previousGamepad1 = new Gamepad();
     final Gamepad previousGamepad2 = new Gamepad();
-    final WhitePixelProcessor whitePixelProcessor = new WhitePixelProcessor(telemetry);
-    final CameraStreamProcessor cameraStreamProcessor = new CameraStreamProcessor();
-
     boolean showMotorTelemetry = true;
     boolean showStateTelemetry = true;
     boolean showLoopTimes = true;

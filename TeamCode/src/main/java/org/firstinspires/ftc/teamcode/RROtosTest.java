@@ -8,7 +8,9 @@ import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.SparkFunOTOS;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+@TeleOp
 public class RROtosTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -38,6 +40,11 @@ public class RROtosTest extends LinearOpMode {
             telemetry.addData("oY", oPose.y);
             telemetry.addData("oH", oPose.h);
             telemetry.addData("oH (deg)", Math.toDegrees(oPose.h));
+
+            telemetry.addData("errorLsm",drive.otos.getStatus().errorLsm);
+            telemetry.addData("errorPaa",drive.otos.getStatus().errorPaa);
+            telemetry.addData("warnTiltAngle",drive.otos.getStatus().warnTiltAngle);
+            telemetry.addData("warnOpticalTracking",drive.otos.getStatus().warnOpticalTracking);
 
             telemetry.update();
 

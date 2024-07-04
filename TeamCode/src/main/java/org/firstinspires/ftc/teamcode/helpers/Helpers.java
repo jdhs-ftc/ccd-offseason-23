@@ -35,39 +35,4 @@ public class Helpers {
     public static double quarternionToHeading(Quaternion Q) {
         return Math.atan2(2.0 * (Q.z * Q.w + Q.x * Q.y) , - 1.0 + 2.0 * (Q.w * Q.w + Q.x * Q.x)) - Math.toRadians(270);
     }
-    public static AprilTagPoseFtc counterRotatePose(AprilTagPoseFtc pose) { // TODO: DON'T uSE THIS JUST MAKE THE CAMERA POINT FORWARD
-        // rotate the X, Y, Z of the pose to make the pitch and roll 0
-        // Github Copilot generated, not a clue what's happening
-        // TODO: PROBABLY BUGGED
-        double pitch = pose.pitch;
-        double roll = pose.roll;
-        double yaw = pose.yaw;
-
-        double cosPitch = Math.cos(pitch);
-        double sinPitch = Math.sin(pitch);
-        double cosRoll = Math.cos(roll);
-        double sinRoll = Math.sin(roll);
-        double cosYaw = Math.cos(yaw);
-        double sinYaw = Math.sin(yaw);
-
-        double[][] rotationMatrix = new double[][] {
-                {cosYaw * cosRoll, cosYaw * sinRoll * sinPitch - sinYaw * cosPitch, cosYaw * sinRoll * cosPitch + sinYaw * sinPitch},
-                {sinYaw * cosRoll, sinYaw * sinRoll * sinPitch + cosYaw * cosPitch, sinYaw * sinRoll * cosPitch - cosYaw * sinPitch},
-                {-sinRoll, cosRoll * sinPitch, cosRoll * cosPitch}
-        };
-
-        double[] rotated = new double[3];
-        for (int i = 0; i < 3; i++) {
-            rotated[i] = 0;
-            for (int j = 0; j < 3; j++) {
-                if (j == 0)
-                    rotated[i] += rotationMatrix[i][j] * pose.x;
-                else if (j == 1)
-                    rotated[i] += rotationMatrix[i][j] * pose.y;
-                else rotated[i] += rotationMatrix[i][j] * pose.z;
-            }
-        }
-        return new AprilTagPoseFtc(rotated[0], rotated[1], rotated[2], 0,0,0, pose.range, pose.bearing, pose.elevation);
-    }
-
 }
