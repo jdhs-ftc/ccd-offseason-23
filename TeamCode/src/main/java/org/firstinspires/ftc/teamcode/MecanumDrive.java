@@ -38,6 +38,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
@@ -89,6 +90,8 @@ public class MecanumDrive {
         public double axialVelGain = 0.0;
         public double lateralVelGain = 0.0;
         public double headingVelGain = 0.0; // shared with turn
+
+        public double writeCachingThreshold = 0.005;
     }
 
     public static Params PARAMS = new Params();
@@ -121,6 +124,10 @@ public class MecanumDrive {
     private final DownsampledWriter targetPoseWriter = new DownsampledWriter("TARGET_POSE", 50_000_000);
     private final DownsampledWriter driveCommandWriter = new DownsampledWriter("DRIVE_COMMAND", 50_000_000);
     private final DownsampledWriter mecanumCommandWriter = new DownsampledWriter("MECANUM_COMMAND", 50_000_000);
+    private double prevLeftBackPower = 0;
+    private double prevRightBackPower = 0;
+    private double prevLeftFrontPower = 0;
+    private double prevRightFrontPower = 0;
 
     public class DriveLocalizer implements Localizer {
         public final Encoder leftFront, leftBack, rightBack, rightFront;
@@ -251,11 +258,33 @@ public class MecanumDrive {
         for (DualNum<Time> power : wheelVels.all()) {
             maxPowerMag = Math.max(maxPowerMag, power.value());
         }
+        double leftFrontPower = wheelVels.leftFront.get(0) / maxPowerMag;
+        double leftBackPower = wheelVels.leftBack.get(0) / maxPowerMag;
+        double rightBackPower = wheelVels.rightBack.get(0) / maxPowerMag;
+        double rightFrontPower = wheelVels.rightFront.get(0) / maxPowerMag;
 
-        leftFront.setPower(wheelVels.leftFront.get(0) / maxPowerMag);
-        leftBack.setPower(wheelVels.leftBack.get(0) / maxPowerMag);
-        rightBack.setPower(wheelVels.rightBack.get(0) / maxPowerMag);
-        rightFront.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
+        // if the difference between new and old powers is more then writeCachingTreshold
+        // then set the new power
+        ElapsedTime powerSettingTime = new ElapsedTime();
+        if (Math.abs(leftFrontPower - prevLeftFrontPower) > PARAMS.writeCachingThreshold) {
+            leftFront.setPower(leftFrontPower);
+            prevLeftFrontPower = leftFrontPower;
+        }
+        if (Math.abs(leftBackPower - prevLeftBackPower) > PARAMS.writeCachingThreshold) {
+            leftBack.setPower(leftBackPower);
+            prevLeftBackPower = leftBackPower;
+        }
+        if (Math.abs(rightBackPower - prevRightBackPower) > PARAMS.writeCachingThreshold) {
+            rightBack.setPower(rightBackPower);
+            prevRightBackPower = rightBackPower;
+        }
+        if (Math.abs(rightFrontPower - prevRightFrontPower) > PARAMS.writeCachingThreshold) {
+            rightFront.setPower(rightFrontPower);
+            prevRightFrontPower = rightFrontPower;
+        }
+        System.out.println("Power Setting Time: " + powerSettingTime.milliseconds());
+
+
     }
 
     public final class FollowTrajectoryAction implements Action {
@@ -323,10 +352,24 @@ public class MecanumDrive {
                     voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
             ));
 
-            leftFront.setPower(leftFrontPower);
-            leftBack.setPower(leftBackPower);
-            rightBack.setPower(rightBackPower);
-            rightFront.setPower(rightFrontPower);
+            // if the difference between new and old powers is more then 0.1
+            // then set the new power
+            if (Math.abs(leftFrontPower - prevLeftFrontPower) > PARAMS.writeCachingThreshold) {
+                leftFront.setPower(leftFrontPower);
+                prevLeftFrontPower = leftFrontPower;
+            }
+            if (Math.abs(leftBackPower - prevLeftBackPower) > PARAMS.writeCachingThreshold) {
+                leftBack.setPower(leftBackPower);
+                prevLeftBackPower = leftBackPower;
+            }
+            if (Math.abs(rightBackPower - prevRightBackPower) > PARAMS.writeCachingThreshold) {
+                rightBack.setPower(rightBackPower);
+                prevRightBackPower = rightBackPower;
+            }
+            if (Math.abs(rightFrontPower - prevRightFrontPower) > PARAMS.writeCachingThreshold) {
+                rightFront.setPower(rightFrontPower);
+                prevRightFrontPower = rightFrontPower;
+            }
 
             p.put("x", pose.position.x);
             p.put("y", pose.position.y);
@@ -413,11 +456,24 @@ public class MecanumDrive {
             mecanumCommandWriter.write(new MecanumCommandMessage(
                     voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
             ));
-
-            leftFront.setPower(feedforward.compute(wheelVels.leftFront) / voltage);
-            leftBack.setPower(feedforward.compute(wheelVels.leftBack) / voltage);
-            rightBack.setPower(feedforward.compute(wheelVels.rightBack) / voltage);
-            rightFront.setPower(feedforward.compute(wheelVels.rightFront) / voltage);
+            // if the difference between new and old powers is more then 0.1
+            // then set the new power
+            if (Math.abs(leftFrontPower - prevLeftFrontPower) > PARAMS.writeCachingThreshold) {
+                leftFront.setPower(leftFrontPower);
+                prevLeftFrontPower = leftFrontPower;
+            }
+            if (Math.abs(leftBackPower - prevLeftBackPower) > PARAMS.writeCachingThreshold) {
+                leftBack.setPower(leftBackPower);
+                prevLeftBackPower = leftBackPower;
+            }
+            if (Math.abs(rightBackPower - prevRightBackPower) > PARAMS.writeCachingThreshold) {
+                rightBack.setPower(rightBackPower);
+                prevRightBackPower = rightBackPower;
+            }
+            if (Math.abs(rightFrontPower - prevRightFrontPower) > PARAMS.writeCachingThreshold) {
+                rightFront.setPower(rightFrontPower);
+                prevRightFrontPower = rightFrontPower;
+            }
 
             Canvas c = p.fieldOverlay();
             drawPoseHistory(c);
