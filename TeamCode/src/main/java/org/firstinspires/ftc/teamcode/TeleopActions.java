@@ -30,6 +30,7 @@ import org.firstinspires.ftc.teamcode.motor.MotorControl;
 import org.firstinspires.ftc.teamcode.vision.pipelines.WhitePixelProcessor;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 @TeleOp(name = "Teleop Field Centric")
@@ -66,6 +67,7 @@ public class TeleopActions extends ActionOpMode {
     boolean drivingEnabled = true;
     boolean actionRunning = false;
     boolean suspendSet = false;
+    LinkedList<Double> loopTimeAvg = new LinkedList<>();
 
 
     @Override
@@ -406,6 +408,11 @@ public class TeleopActions extends ActionOpMode {
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
 
             double loopTimeMs = loopTime.milliseconds();
+            loopTimeAvg.add(loopTimeMs);
+            while (loopTimeAvg.size() > 1000) {
+                loopTimeAvg.removeFirst();
+            }
+
             if (showPoseTelemetry) {
                 telemetry.addLine("--- Pose ---");
                 telemetry.addData("x", drive.pose.position.x);
@@ -416,6 +423,7 @@ public class TeleopActions extends ActionOpMode {
                 telemetry.addLine("--- Loop Times ---");
                 telemetry.addData("loopTimeMs", loopTimeMs);
                 telemetry.addData("loopTimeHz", 1000.0 / loopTimeMs);
+                telemetry.addData("OTOSReadAverage ", loopTimeAvg.stream().reduce(0.0,Double::sum) / loopTimeAvg.size());
             }
             /*
             if (showMotorTelemetry) {

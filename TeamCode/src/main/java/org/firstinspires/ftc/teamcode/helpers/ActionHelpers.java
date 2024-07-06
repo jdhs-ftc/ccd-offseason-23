@@ -7,6 +7,8 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Actions;
 
+import java.util.function.Consumer;
+
 public class ActionHelpers {
     public static class RaceParallelCommand implements Action {
         private final Action[] actions;
@@ -25,6 +27,28 @@ public class ActionHelpers {
         @Override
         public void preview(@NonNull Canvas canvas) {
             for (Action action : actions) action.preview(canvas);
+        }
+
+
+    }
+    public static class ActionWithUpdate implements Action {
+        private final Action action;
+        private final Runnable func;
+
+        public ActionWithUpdate(Action action, Runnable func) {
+            this.action = action;
+            this.func = func;
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket t) {
+            func.run();
+            return action.run(t);
+        }
+
+        @Override
+        public void preview(@NonNull Canvas canvas) {
+            action.preview(canvas);
         }
 
 

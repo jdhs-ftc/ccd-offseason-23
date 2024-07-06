@@ -11,7 +11,13 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.FlightRecorder;
 import com.acmerobotics.roadrunner.ftc.SparkFunOTOS;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
 import org.firstinspires.ftc.teamcode.messages.PoseMessage;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Experimental extension of MecanumDrive that uses the SparkFun OTOS sensor for localization.
@@ -65,6 +71,8 @@ public class SparkFunOTOSDrive extends MecanumDrive {
     public SparkFunOTOS otos;
     private Pose2d lastOtosPose = pose;
 
+    LinkedList<Double> readTimes = new LinkedList<>();
+
     public SparkFunOTOSDrive(HardwareMap hardwareMap, Pose2d pose) {
         super(hardwareMap, pose);
         otos = hardwareMap.get(SparkFunOTOS.class,"sensor_otos");
@@ -106,8 +114,24 @@ public class SparkFunOTOSDrive extends MecanumDrive {
             // the only alternative is to add getter and setters but that breaks compat
             otos.setPosition(RRPoseToOTOSPose(pose));
         }
+        ElapsedTime OTOSReadTime = new ElapsedTime();
+        OTOSReadTime.reset();
+
+        SparkFunOTOS.Pose2D[] posVelList = otos.getPosVelCorrected();
+        SparkFunOTOS.Pose2D otosPose = posVelList[0];
+        SparkFunOTOS.Pose2D otosVel = posVelList[1];
+
+
+        /*
         SparkFunOTOS.Pose2D otosPose = otos.getPosition();
-        SparkFunOTOS.Pose2D otosVel = otos.getVelocity();
+        SparkFunOTOS.Pose2D otosVel = otosPose;
+         */
+        System.out.println("OTOS Read Time" + OTOSReadTime.milliseconds());
+        readTimes.add(OTOSReadTime.milliseconds());
+        while (readTimes.size() > 500) {
+            readTimes.removeFirst();
+        }
+        System.out.println("OTOSReadAverage " + readTimes.stream().reduce(0.0,Double::sum) / readTimes.size());
         pose = OTOSPoseToRRPose(otosPose);
         lastOtosPose = pose;
 
