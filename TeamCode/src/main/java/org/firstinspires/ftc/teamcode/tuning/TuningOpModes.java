@@ -17,6 +17,7 @@ import com.acmerobotics.roadrunner.ftc.LateralRampLogger;
 import com.acmerobotics.roadrunner.ftc.ManualFeedforwardTuner;
 import com.acmerobotics.roadrunner.ftc.MecanumMotorDirectionDebugger;
 import com.acmerobotics.roadrunner.ftc.OtosEncoder;
+import com.acmerobotics.roadrunner.ftc.SparkFunOTOS;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
@@ -60,8 +61,24 @@ public final class TuningOpModes {
 
                 List<Encoder> leftEncs = new ArrayList<>(), rightEncs = new ArrayList<>();
                 List<Encoder> parEncs = new ArrayList<>(), perpEncs = new ArrayList<>();
-                parEncs.add(new OtosEncoder(od.otos,false, od.leftBack));
-                perpEncs.add(new OtosEncoder(od.otos,true, od.leftBack));
+                // set OTOS to robot centric mode
+                od.otos.setSignalProcessConfig(new SparkFunOTOS.SignalProcessConfig((byte) 0x0B));
+                // set the encoder based on the offset
+                // currently assumes offset is multiple of 90
+                // which might cause problems later
+                if (SparkFunOTOSDrive.PARAMS.offset.h == Math.toRadians(90)) {
+                    parEncs.add(new OtosEncoder(od.otos, true, true, od.leftBack));
+                    perpEncs.add(new OtosEncoder(od.otos, false, false, od.leftBack));
+                } else if (SparkFunOTOSDrive.PARAMS.offset.h == Math.toRadians(180)) {
+                    parEncs.add(new OtosEncoder(od.otos, false, true, od.leftBack));
+                    perpEncs.add(new OtosEncoder(od.otos, true, true, od.leftBack));
+                } else if (SparkFunOTOSDrive.PARAMS.offset.h == Math.toRadians(-90)) {
+                    parEncs.add(new OtosEncoder(od.otos, true, false, od.leftBack));
+                    perpEncs.add(new OtosEncoder(od.otos, false, true, od.leftBack));
+                } else {
+                    parEncs.add(new OtosEncoder(od.otos, false, false, od.leftBack));
+                    perpEncs.add(new OtosEncoder(od.otos, true, false, od.leftBack));
+                }
 
                 return new DriveView(
                         DriveType.MECANUM,
