@@ -1,28 +1,31 @@
 package org.firstinspires.ftc.teamcode;
 
-
-
+import androidx.annotation.Nullable;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
+import com.acmerobotics.roadrunner.Twist2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.FlightRecorder;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import com.sun.source.tree.LabeledStatementTree;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
-import org.firstinspires.ftc.teamcode.helpers.control.KalmanFilter;
 import org.firstinspires.ftc.teamcode.messages.PoseMessage;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.util.*;
+
 /**
  * Experimental extension of MecanumDrive that uses AprilTags for relocalization.
  * <p>
  * Released under the BSD 3-Clause Clear License by j5155 from 12087 Capital City Dynamics
- * Portions of this code made and released under the BSD 3-Clause Clear License by Michael from 14343 and by Ryan Brott
+ * Portions of this code released under the BSD 3-Clause Clear License by Michael from team 14343,
+ * Tarun from team 12791, and by Ryan Brott from team 8367
  */
 public class AprilTagDrive extends SparkFunOTOSDrive { // TODO: if not using MecanumDrive, change to your drive class (e.g. TankDrive, SparkFunOTOSDrive)
     @Config
@@ -33,19 +36,13 @@ public class AprilTagDrive extends SparkFunOTOSDrive { // TODO: if not using Mec
                 -6,
                 4);
 
-        /*
-         * Q model covariance (trust in model), default 0.1 HIGHER IS LESS TRUST
-         * R sensor covariance (trust in sensor), default 0.4
-         */
-        static double kalmanFilterQ = 0.4;
-        static double kalmanFilterR = 0.1;
     }
 
     Vector2d cameraOffset;
     final AprilTagProcessor aprilTag;
-    final KalmanFilter.Vector2dKalmanFilter posFilter;
     Pose2d localizerPose;
-    Vector2d filteredVector;
+    long tagDetectTime;
+    PosePatcher posePatcher = new PosePatcher(1000000000); // timeout of 1 second
     /**
      * Init with just one camera; use instead of MecanumDrive
      * @param hardwareMap the hardware map
@@ -55,7 +52,6 @@ public class AprilTagDrive extends SparkFunOTOSDrive { // TODO: if not using Mec
     public AprilTagDrive(HardwareMap hardwareMap, Pose2d pose, AprilTagProcessor aprilTag) {
         super(hardwareMap, pose);
         this.aprilTag = aprilTag;
-        this.posFilter = new KalmanFilter.Vector2dKalmanFilter(Params.kalmanFilterQ, Params.kalmanFilterR);
         this.cameraOffset = Params.cameraOffset;
 
     }
@@ -67,46 +63,58 @@ public class AprilTagDrive extends SparkFunOTOSDrive { // TODO: if not using Mec
         localizerPose = pose;
         // Get the absolute position from the camera
         Vector2d aprilVector = getVectorBasedOnTags();
+        posePatcher.add(pose);
+        posePatcher.removeOld();
 
 
-        // it's possible we can't see any tags, so we need to check for null
+        // it's possible we can't see any tags, so we need to check for a vector of 0
         if (aprilVector != null) {
             // if we can see tags, we use the apriltag position
             // however apriltags don't have accurate headings so we use the localizer heading
             // localizer heading, for us and in TwoDeadWheelLocalizer, is IMU and absolute-ish
             // TODO: apriltags unreliable at higher speeds? speed limit? global shutter cam? https://discord.com/channels/225450307654647808/225451520911605765/1164034719369941023
 
-            // we input the change from odometry with the april absolute pose into the kalman filter
-            // TODO: remove all references to kalman filter
-            // using the updatePoseEstimate method doesn't give us a twist
-            // and we need to use updatePoseEstimate to ensure OTOS support
+            // Get the backtracked pose from PosePatcher
+            // The issue is that the atag data can be considerably delayed
+            // depending on the frame rate and loop time
+            // So pose patcher calculates what the current pose should actually be
+            // based on the timestamp the atag data was received
 
-            //filteredVector = posFilter.update(twist.value(), aprilVector);
+            // note that the atag position is a vector; we do not get heading from atags and assume
+            // the existing localization method (IMU) is good for that
+            Pose2d backtrackedTagPose = posePatcher.patch(aprilVector,tagDetectTime);
 
-            // then we add the kalman filtered position to the localizer heading as a pose
-            pose = new Pose2d(aprilVector, localizerPose.heading); // TODO: aprilVector should be filteredVector to use kalman filter (kalman filter is untested)
-        } else {
-            // if we can't see tags, we use the localizer position to update the kalman fiter
-            // not sure if this is logical at all??
-            // UNTESTED, WE WERENT USING FILTEREDVECTOR :skull:
-            //filteredVector = posFilter.update(twist.value(), localizerPose.position);
+            // this is null when pose patcher doesn't find any pose before now in its history,
+            // which should not be possible,
+            // but just in case, we revert to assuming the atag pose came in now instead
+            if (backtrackedTagPose == null) {
+                // then we add the apriltag position to the localizer heading as a pose
+                backtrackedTagPose = new Pose2d(aprilVector, localizerPose.heading);
+            }
 
-            // then just use the existing pose
-            pose = localizerPose;
+
+            pose = backtrackedTagPose;
         }
+
 
         FlightRecorder.write("APRILTAG_POSE", new PoseMessage(pose));
 
-        return posVel; // trust the existing localizer for speeds; because I don't know how to do it with apriltags
+        return posVel; // trust the existing localizer for speeds because I don't know how to do it with apriltags
     }
     public Vector2d getVectorBasedOnTags() {
-        return aprilTag.getDetections().stream() // get the tag detections as a Java stream
-                // convert them to Vector2d positions using getFCPosition
-                .map(detection -> getFCPosition(detection, localizerPose.heading.log(), Params.cameraOffset))
-                // add them together
-                .reduce(new Vector2d(0, 0), Vector2d::plus)
-                // divide by the number of tags to get the average
-                .div(aprilTag.getDetections().size());
+        ArrayList<AprilTagDetection> detections = aprilTag.getDetections();
+        if (detections.isEmpty()) {
+            return null;
+        } else {
+            tagDetectTime = aprilTag.getDetections().get(0).frameAcquisitionNanoTime;
+            return aprilTag.getDetections().stream() // get the tag detections as a Java stream
+                    // convert them to Vector2d positions using getFCPosition
+                    .map(detection -> getFCPosition(detection, localizerPose.heading.log(), Params.cameraOffset))
+                    // add them together
+                    .reduce(new Vector2d(0, 0), Vector2d::plus)
+                    // divide by the number of tags to get the average position
+                    .div(aprilTag.getDetections().size());
+        }
     }
 
     /**

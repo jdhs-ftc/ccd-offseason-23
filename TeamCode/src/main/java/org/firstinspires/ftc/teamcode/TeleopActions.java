@@ -39,7 +39,7 @@ public class TeleopActions extends ActionOpMode {
 
 
     // Declare a PIDF Controller to regulate heading
-    private final PIDFController.PIDCoefficients HEADING_PID_JOYSTICK = new PIDFController.PIDCoefficients(0.3, 0.0, 1);
+    private final PIDFController.PIDCoefficients HEADING_PID_JOYSTICK = new PIDFController.PIDCoefficients(0.6, 0.0, 1);
     private final PIDFController joystickHeadingController = new PIDFController(HEADING_PID_JOYSTICK);
     double speed;
     Rotation2d targetHeading = PoseStorage.currentPose.heading;
@@ -244,7 +244,7 @@ public class TeleopActions extends ActionOpMode {
             Vector2d controllerHeading = new Vector2d(-gamepad1.right_stick_y, -gamepad1.right_stick_x);
 
             if (drivingEnabled) {
-                if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1) { //TODO: trigggers still turn, but PID hold heading unless turning
+                if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1) {
                     drive.setDrivePowers(
                             new PoseVelocity2d(
                                     new Vector2d(

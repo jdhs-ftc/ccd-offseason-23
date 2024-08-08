@@ -84,9 +84,9 @@ public class MecanumDrive {
         public double maxAngAccel = Math.PI;
 
         // path controller gains
-        public double axialGain = 6.0;
-        public double lateralGain = 6.0;
-        public double headingGain = 6.0; // shared with turn
+        public double axialGain = 8.0;
+        public double lateralGain = 8.0;
+        public double headingGain = 8.0; // shared with turn
 
         public double axialVelGain = 0.0;
         public double lateralVelGain = 0.0;
@@ -146,7 +146,6 @@ public class MecanumDrive {
             leftBack = new OverflowEncoder(new RawEncoder(MecanumDrive.this.leftBack));
             rightBack = new OverflowEncoder(new RawEncoder(MecanumDrive.this.rightBack));
             rightFront = new OverflowEncoder(new RawEncoder(MecanumDrive.this.rightFront));
-
             imu = lazyImu.get();
 
             // TODO: reverse encoders if needed
@@ -410,7 +409,6 @@ public class MecanumDrive {
             c.strokePolyline(xPoints, yPoints);
         }
     }
-
     public final class PIDToPointAction implements Action {
         public final Pose2d target;
         public final Pose2d startPose;
@@ -420,7 +418,7 @@ public class MecanumDrive {
 
         public PIDToPointAction(Pose2d target) {
             this.target = target;
-            this.startPose = new Pose2d(0,0,0);
+            this.startPose = pose;
             xContr.targetPosition = target.position.x;
             yContr.targetPosition = target.position.y;
             headingContr.targetPosition = target.heading.toDouble();
@@ -441,7 +439,7 @@ public class MecanumDrive {
 
             PoseVelocity2d robotVelRobot = updatePoseEstimate();
 
-            if (pose.position.minus(target.position).sqrNorm() < 1) {
+            if (pose.position.minus(target.position).sqrNorm() < 1 && robotVelRobot.linearVel.sqrNorm() < 5) {
                 leftBack.setPower(0);
                 leftFront.setPower(0);
                 rightBack.setPower(0);
@@ -459,7 +457,7 @@ public class MecanumDrive {
                     headingContr.update(pose.heading.log())
 
             );
-            MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(PoseVelocity2dDual.constant(input, 1));
+            MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(PoseVelocity2dDual.constant(input, 2));
             double voltage = readVoltage();
 
             final MotorFeedforward feedforward = new MotorFeedforward(PARAMS.kS,
@@ -523,6 +521,9 @@ public class MecanumDrive {
             c.setStrokeWidth(1);
             c.strokeLine(startPose.position.x,startPose.position.y,target.position.x,target.position.y);
         }
+    }
+    public PIDToPointAction pidToPointAction(Pose2d target) {
+        return new PIDToPointAction(target);
     }
 
     public final class TurnAction implements Action {

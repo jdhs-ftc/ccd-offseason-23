@@ -9,7 +9,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.FlightRecorder;
-import com.acmerobotics.roadrunner.ftc.SparkFunOTOS;
+import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -41,7 +41,7 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         // RR localizer note: these units are inches and radians
         // also, tuning currently assumes your angular offset is a multiple of 90
 
-        public SparkFunOTOS.Pose2D offset = new SparkFunOTOS.Pose2D(0.44, 4.965, Math.toRadians(180));
+        public SparkFunOTOS.Pose2D offset = new SparkFunOTOS.Pose2D(0,0,Math.toRadians(180));//new SparkFunOTOS.Pose2D(0.44, 4.965, Math.toRadians(180));
 
         // Here we can set the linear and angular scalars, which can compensate for
         // scaling issues with the sensor measurements. Note that as of firmware
@@ -64,7 +64,7 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         // these are initial tuning numbers based on weird mount and weird tiles
         // TODO: TEST WITH GOOD MOUNT ON REAL TILES
         public double linearScalar = 1.0; //114/101; //1.0615; //69/65;
-        public double angularScalar = 0.999444; // 3600/3602;
+        public double angularScalar = 0.98534;//0.999444; // 3600/3602;
     }
 
     public static SparkFunOTOSDrive.Params PARAMS = new SparkFunOTOSDrive.Params();

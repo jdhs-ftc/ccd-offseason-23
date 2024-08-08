@@ -5,9 +5,11 @@
 */
 package org.firstinspires.ftc.teamcode;
 
-import com.acmerobotics.roadrunner.ftc.SparkFunOTOS;
+import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 /*
  * This OpMode illustrates how to use the SparkFun Qwiic Optical Tracking Odometry Sensor (OTOS)
@@ -77,9 +79,9 @@ public class OTOSOpMode extends LinearOpMode {
         // stored in the sensor, it's part of the library, so you need to set at the
         // start of all your programs.
         // myOtos.setLinearUnit(SparkFunOTOS.LinearUnit.METERS);
-        myOtos.setLinearUnit(SparkFunOTOS.LinearUnit.INCHES);
+        myOtos.setLinearUnit(DistanceUnit.INCH);
         // myOtos.setAngularUnit(SparkFunOTOS.AngularUnit.RADIANS);
-        myOtos.setAngularUnit(SparkFunOTOS.AngularUnit.DEGREES);
+        myOtos.setAngularUnit(AngleUnit.DEGREES);
 
         // Assuming you've mounted your sensor to a robot and it's not centered,
         // you can specify the offset for the sensor relative to the center of the

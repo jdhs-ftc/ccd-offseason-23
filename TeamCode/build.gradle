@@ -14,6 +14,7 @@
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
+apply plugin: 'org.team11260.fast-load-plugin'
 
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
@@ -23,12 +24,27 @@ android {
     }
 }
 
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url = "https://www.matthewo.tech/maven"
+        }
+    }
+    dependencies {
+        classpath 'org.team11260:fast-load-plugin:0.1.2'
+    }
+}
+
 repositories {
     maven {
         url = 'https://maven.brott.dev/'
     }
     maven {
         url = 'https://jitpack.io'
+    }
+    maven {
+        url = 'https://www.matthewo.tech/maven'
     }
 }
 
@@ -40,4 +56,5 @@ dependencies {
     implementation "com.acmerobotics.roadrunner:actions:1.0.0"
     implementation "com.acmerobotics.dashboard:dashboard:0.4.15"
     implementation "com.github.jdhs-ftc:road-runner-ftc-otos:4b219ff0c0"
+    implementation 'org.team11260:fast-load:0.1.2'
 }
