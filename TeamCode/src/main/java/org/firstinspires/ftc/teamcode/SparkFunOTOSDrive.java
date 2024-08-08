@@ -11,13 +11,11 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.FlightRecorder;
 import com.acmerobotics.roadrunner.ftc.SparkFunOTOS;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.ElapsedTime;
-
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.messages.PoseMessage;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Experimental extension of MecanumDrive that uses the SparkFun OTOS sensor for localization.
@@ -79,8 +77,8 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         super(hardwareMap, pose);
         otos = hardwareMap.get(SparkFunOTOS.class,"sensor_otos");
 
-        otos.setLinearUnit(SparkFunOTOS.LinearUnit.INCHES);
-        otos.setAngularUnit(SparkFunOTOS.AngularUnit.RADIANS);
+        otos.setLinearUnit(DistanceUnit.INCH);
+        otos.setAngularUnit(AngleUnit.RADIANS);
 
         otos.setOffset(PARAMS.offset);
         System.out.println("OTOS calibration beginning!");
@@ -119,24 +117,13 @@ public class SparkFunOTOSDrive extends MecanumDrive {
             // the only alternative is to add getter and setters but that breaks compat
             otos.setPosition(RRPoseToOTOSPose(pose));
         }
-        ElapsedTime OTOSReadTime = new ElapsedTime();
-        OTOSReadTime.reset();
-
-        SparkFunOTOS.Pose2D[] posVelList = otos.getPosVelCorrected();
-        SparkFunOTOS.Pose2D otosPose = posVelList[0];
-        SparkFunOTOS.Pose2D otosVel = posVelList[1];
-
-
-        /*
-        SparkFunOTOS.Pose2D otosPose = otos.getPosition();
-        SparkFunOTOS.Pose2D otosVel = otosPose;
-         */
-        System.out.println("OTOS Read Time" + OTOSReadTime.milliseconds());
-        readTimes.add(OTOSReadTime.milliseconds());
-        while (readTimes.size() > 500) {
-            readTimes.removeFirst();
-        }
-        System.out.println("OTOSReadAverage " + readTimes.stream().reduce(0.0,Double::sum) / readTimes.size());
+        // passed by reference
+        // reading acc is slightly worse (1ms) for loop times but oh well, this is what the driver supports
+        // might have to make a custom driver eventually
+        com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D otosPose = new com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D();
+        com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D otosVel = new com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D();
+        com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D otosAcc = new com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D();
+        otos.getPosVelAcc(otosPose,otosVel,otosAcc);
         pose = OTOSPoseToRRPose(otosPose);
         lastOtosPose = pose;
 
@@ -155,4 +142,6 @@ public class SparkFunOTOSDrive extends MecanumDrive {
 
         return new PoseVelocity2d(new Vector2d(otosVel.x, otosVel.y),otosVel.h);
     }
+
+
 }
