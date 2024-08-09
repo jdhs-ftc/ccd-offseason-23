@@ -69,7 +69,7 @@ public class SparkFunOTOSDrive extends MecanumDrive {
 
     public static SparkFunOTOSDrive.Params PARAMS = new SparkFunOTOSDrive.Params();
     public SparkFunOTOS otos;
-    private Pose2d lastOtosPose = pose;
+    public Pose2d lastOtosPose = pose;
 
     LinkedList<Double> readTimes = new LinkedList<>();
 
@@ -120,9 +120,9 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         // passed by reference
         // reading acc is slightly worse (1ms) for loop times but oh well, this is what the driver supports
         // might have to make a custom driver eventually
-        com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D otosPose = new com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D();
-        com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D otosVel = new com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D();
-        com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D otosAcc = new com.qualcomm.hardware.sparkfun.SparkFunOTOS.Pose2D();
+        SparkFunOTOS.Pose2D otosPose = new SparkFunOTOS.Pose2D();
+        SparkFunOTOS.Pose2D otosVel = new SparkFunOTOS.Pose2D();
+        SparkFunOTOS.Pose2D otosAcc = new SparkFunOTOS.Pose2D();
         otos.getPosVelAcc(otosPose,otosVel,otosAcc);
         pose = OTOSPoseToRRPose(otosPose);
         lastOtosPose = pose;
